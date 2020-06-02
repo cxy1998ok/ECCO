@@ -18,56 +18,70 @@ allFLD=nan(1080,360,288);
 for MONTH=1:288
 %fileName= [dirv4r3 'nctiles_monthly\ETAN\' 'ETAN'];
 %fldName='ETAN';
-fileName= [dirv4r3 'nctiles_monthly\PHIBOT\' 'PHIBOT'];
-fldName='PHIBOT';
-fld=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
-[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,fld); 
+%fileName= [dirv4r3 'nctiles_monthly\PHIBOT\' 'PHIBOT'];
+%fldName='PHIBOT';
+%fld=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
+%[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,fld); 
 
 %Last two use:
- %fileName= [dirv4r3 'nctiles_monthly\oceTAUX\' 'oceTAUX'];
- %fldName='oceTAUX';
-%fldx=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
-%fileName= [dirv4r3 'nctiles_monthly\oceTAUY\' 'oceTAUY'];
-%fldName='oceTAUY';
-%fldy=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
-%[fldUe,fldVn]=calc_UEVNfromUXVY(fldx,fldy);
-%[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,fldVn); %Ue for east Vn for North
+ fileName= [dirv4r3 'nctiles_monthly\oceTAUX\' 'oceTAUX'];
+ fldName='oceTAUX';
+fldx=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
+fileName= [dirv4r3 'nctiles_monthly\oceTAUY\' 'oceTAUY'];
+fldName='oceTAUY';
+fldy=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
+[fldUe,fldVn]=calc_UEVNfromUXVY(fldx,fldy);
+[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,fldUe); %Ue for east Vn for North
 
 allFLD(:,:,MONTH)=FLD;
 end
 %[allFLDeof,allFLDpc,allFLDexpvar]=eof(allFLD);
-
+%allFLDpc1=allFLDpc(1,:);
+latrange=[-40 -60];
+index=[find(lat==latrange(end)):find(lat==latrange(1))] ;
+for t=1:288
+    depthline=find(dens_bnds>1036,1);
+    psi1(t)=min(squeeze(PSItot(find(lat==-60),depthline:end,t)));
+    psi2(t)=min(min(PSItot(index,depthline:end,t),[],2));
+    psi3(t)=max(min(PSItot(index,depthline:end,t),[],2));
+end
 
 
 r=nan(1080,360);
 pval=nan(1080,360);
 for i=1:1080
     for j=1:360
-        [M,P]=corrcoef(squeeze(allFLD(i,j,:)),pc1');
+        [M,P]=corrcoef(squeeze(allFLD(i,j,:)),psi3');
         r(i,j)=M(2);
         pval(i,j)=P(2);
     end
 end
 %[M,P]=corrcoef(SAM,pc1'); %corrcoef for SAM with pc1
 %[M,P]=corrcoef(SAM,allFLDpc1'); %correcoef for SAM with field pc1
-%{
-index=find(lat==-60);
-for t=1:288
-    psi(t)=min(PSItot(index,:,t));
-end
-%}
+
+
+
 
 %% Plot - with gcmfaces
 %This is much better:
 figure;
-pcolor(X,Y,pval);
+pcolor(X,Y,r);
 if ~isempty(find(X>359)); axis([0 360 -90 90]); else; axis([-180 180 -90 90]); end;
 dd1 = 1;
-cc=[-0.1:0.01:.1]*dd1; % color bar set to -1 to 1 N/m2
+cc=[-1:0.1:1]*dd1; % color bar set to -1 to 1 N/m2
 shading flat; cb=gcmfaces_cmap_cbar(cc);
 %Add labels and title
 xlabel('longitude'); ylabel('latitude');
-title('p-value of the Correlation between PHIBOT and PC1 time series');
+title('Correlation between ETAN and PSI1 time series');
+
+
+
+
+
+
+
+
+
 
 %{
 if 0
