@@ -18,45 +18,50 @@ alldensflux=nan(1080,360,288);
 allFLD2=nan(1080,360,288);
 %% Reading 2D NC fields (ETAN is the liquid sea surface height)
 for MONTH=1:288
-%fileName= [dirv4r3 'nctiles_monthly\ETAN\' 'ETAN'];
-%fldName='ETAN';
+fileName= [dirv4r3 'nctiles_monthly\ETAN\' 'ETAN'];
+fldName='ETAN';
 %fileName= [dirv4r3 'nctiles_monthly\PHIBOT\' 'PHIBOT'];
 %fldName='PHIBOT';
-fileName= [dirv4r3 'nctiles_monthly\surfSALT\' 'surfSALT'];
-fldName='SALT';
+%fileName= [dirv4r3 'nctiles_monthly\surfSALT\' 'surfSALT'];
+%fldName='SALT';
 
-fld1=read_nctiles(fileName,fldName,MONTH,1); %need to plug in 1 for surface depth if its a 4d field
-[X,Y,FLD1]=convert2pcol(mygrid.XC,mygrid.YC,fld1); 
+%fld1=read_nctiles(fileName,fldName,MONTH,1); %need to plug in 1 for surface depth if its a 4d field
+%[X,Y,FLD1]=convert2pcol(mygrid.XC,mygrid.YC,fld1); 
 
-fileName= [dirv4r3 'nctiles_monthly\surfTemp\' 'surfTemp'];
-fldName='THETA';
-fld2=read_nctiles(fileName,fldName,MONTH,1); %Read in the MONTH-th monthly record of ETAN
-[X,Y,FLD2]=convert2pcol(mygrid.XC,mygrid.YC,fld2); 
+%fileName= [dirv4r3 'nctiles_monthly\surfTemp\' 'surfTemp'];
+%fldName='THETA';
+%fld2=read_nctiles(fileName,fldName,MONTH,1); %Read in the MONTH-th monthly record of ETAN
+%[X,Y,FLD2]=convert2pcol(mygrid.XC,mygrid.YC,fld2); 
 
-fileName= [dirv4r3 'nctiles_monthly\SFLUX\' 'SFLUX'];
-fldName='SFLUX';
-fld3=read_nctiles(fileName,fldName,MONTH); %need to plug in 1 for surface depth if its a 4d field
-[X,Y,FLD3]=convert2pcol(mygrid.XC,mygrid.YC,fld3); 
-fileName= [dirv4r3 'nctiles_monthly\TFLUX\' 'TFLUX'];
-fldName='TFLUX';
-fld4=read_nctiles(fileName,fldName,MONTH); %need to plug in 1 for surface depth if its a 4d field
-[X,Y,FLD4]=convert2pcol(mygrid.XC,mygrid.YC,fld4); 
+%fileName= [dirv4r3 'nctiles_monthly\SFLUX\' 'SFLUX'];
+%fldName='SFLUX';
+%fld3=read_nctiles(fileName,fldName,MONTH); %need to plug in 1 for surface depth if its a 4d field
+%[X,Y,FLD3]=convert2pcol(mygrid.XC,mygrid.YC,fld3); 
+%fileName= [dirv4r3 'nctiles_monthly\TFLUX\' 'TFLUX'];
+%fldName='TFLUX';
+%fld4=read_nctiles(fileName,fldName,MONTH); %need to plug in 1 for surface depth if its a 4d field
+%[X,Y,FLD4]=convert2pcol(mygrid.XC,mygrid.YC,fld4); 
 %Vectors use:
-% fileName= [dirv4r3 'nctiles_monthly\oceTAUX\' 'oceTAUX'];
- %fldName='oceTAUX';
-%fldx=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
-%fileName= [dirv4r3 'nctiles_monthly\oceTAUY\' 'oceTAUY'];
-%fldName='oceTAUY';
-%fldy=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
-%[fldUe,fldVn]=calc_UEVNfromUXVY(fldx,fldy);
-%[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,fldUe); %Ue for east Vn for North
+ fileName= [dirv4r3 'nctiles_monthly\oceTAUX\' 'oceTAUX'];
+ fldName='oceTAUX';
+fldx=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
+fileName= [dirv4r3 'nctiles_monthly\oceTAUY\' 'oceTAUY'];
+fldName='oceTAUY';
+fldy=read_nctiles(fileName,fldName,MONTH); %Read in the MONTH-th monthly record of ETAN
+[fldUe,fldVn]=calc_UEVNfromUXVY(fldx,fldy);
+[X,Y,FLD1]=convert2pcol(mygrid.XC,mygrid.YC,fldUe); %Ue for east Vn for North
 
+%Density flux calculation:
+%{
 dens=densmdjwf(FLD1,FLD2,10*ones(1080,360));
 cp=sw_cp(FLD1,FLD2,10*ones(1080,360));
 
 [alpha,beta]=calcAlphaBeta(FLD1,FLD2,5*ones(1080,360));
 densflux=beta.*FLD3-alpha.*FLD4./cp; %change this to sflux and tflux
 alldensflux(:,:,MONTH)=densflux;
+%}
+
+allFLD(:,:,MONTH)=FLD1;
 end
 
 
@@ -68,6 +73,10 @@ end
 %UVELtot=UVELtot.UVELtot_mean;
 %[X,Y,FLD]=convert2pcol(mygrid.XC,mygrid.YC,UVELtot); 
 
+
+%{
+%%Calculating principle component:
+%pc1=pc(1,:);
 %[allFLDeof,allFLDpc,allFLDexpvar]=eof(allFLD);
 %allFLDpc1=allFLDpc(1,:);
 
@@ -86,17 +95,34 @@ end
 
 r=nan(1080,360);
 pval=nan(1080,360);
+Maxlag=nan(1080,360);
 for i=1:1080
     for j=1:360
-        [M,P]=corrcoef(squeeze(alldensflux(i,j,:)),psi3');
+        %Correlation
+        [M,P]=corrcoef(squeeze(allFLD(i,j,:)),pc1);
         r(i,j)=M(2);
         pval(i,j)=P(2);
+        
+        %{ 
+        %lagged correlation
+        
+        [r1,lags]=xcorr(squeeze(allFLD(i,j,:)),psi1','normalized');
+        [Maxval,MaxIndex]=max(r1);
+        MaxMonth=lags(MaxIndex);
+        
+       % optimallag=circshift(psi3',MaxMonth);
+      
+       %[M,P]=corrcoef(squeeze(alldensflux(i,j,:)),optimallag);
+         
+        r(i,j)=Maxval;
+        Maxlag(i,j)=MaxMonth;
+        %}
     end
 end
 %[M,P]=corrcoef(SAM,pc1'); %corrcoef for SAM with pc1
 %[M,P]=corrcoef(SAM,allFLDpc1'); %correcoef for SAM with field pc1
 
-
+%}
 
 
 %% Plot - with gcmfaces
@@ -108,8 +134,8 @@ dd1 = 1;
 cc=[-1:0.1:1]*dd1; % color bar set to -1 to 1 N/m2
 shading flat; cb=gcmfaces_cmap_cbar(cc);
 %Add labels and title
-xlabel('longitude'); ylabel('latitude');
-title('Correlation between Densflux and PSI3 time series');
+xlabel('Longitude'); ylabel('Latitude');
+title('Correlation between wind stress and Southern Ocean deep overturning cell');
 
 
 
